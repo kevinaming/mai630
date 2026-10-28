@@ -4,7 +4,7 @@ window.SECTIONS = [
   id: "intro", title: "Presentación", sub: "Para abrir y cerrar la reunión", tag: "Inicio",
   topics: [
     { id: "open", title: "Abrir la reunión", items: [
-      { en: "Good afternoon, everyone. Welcome to our weekly meeting for MAI 630, Computer Vision.", es: "Buenas tardes a todos. Bienvenidos a nuestra reunión semanal de MAI 630, Computer Vision." },
+      { en: "Good afternoon, everyone. Welcome to our weekly meeting for the Computer Vision class.", es: "Buenas tardes a todos. Bienvenidos a nuestra reunión semanal de la clase de Computer Vision." },
       { en: "Thank you for being here. I will wait one or two more minutes for others to join.", es: "Gracias por estar aquí. Espero uno o dos minutos más a que entren los demás." },
       { en: "Okay, let's start. Can everyone hear me well?", es: "Bueno, empecemos. ¿Todos me escuchan bien?" },
       { en: "This meeting is for your questions. There are no bad questions, so please ask anything.", es: "Esta reunión es para sus preguntas. No hay preguntas malas, así que pregunten lo que sea." },
