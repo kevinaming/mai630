@@ -111,6 +111,14 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
 .hit .sub { color: var(--es); font-size: 14px }
 .hit mark { background: #FFE08A; color: #121A2B; border-radius: 3px }
 .empty { color: var(--muted); margin-top: 14px }
+.qlist { grid-column: 1 / -1; display: grid; gap: 4px; border-left: 3px solid var(--red); padding: 4px 0 4px 10px; margin-bottom: 4px }
+.qbtn { text-align: left; background: transparent; border: 0; border-radius: 8px; padding: 8px 10px; font-size: 14px; line-height: 1.3; color: var(--ink); min-height: 40px }
+.qbtn:hover { background: var(--chip) }
+
+/* Docked: the topics menu stays open on the right, the page uses the rest of the width */
+body.docked { padding-right: 340px }
+body.docked .sheet { inset: 0 0 0 auto; width: 340px; background: transparent; z-index: 12 }
+body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
 .card.flash { animation: flash 1.6s ease-out }
 @keyframes flash { 0%, 40% { border-color: var(--red); box-shadow: 0 0 0 4px rgba(192,18,42,.25) } 100% { border-color: var(--line); box-shadow: none } }
 @media (prefers-reduced-motion: reduce) { .tile { transition: none } .tile:hover:not(:disabled) { transform: none } .card.flash { animation: none; border-color: var(--red) } }
@@ -286,22 +294,24 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
     else if (st.v === "section") renderSection(st.s);
     else renderTopic(st.s, st.t);
     renderChips(st);
+    if (!sheet.hidden) renderSheet();
     window.scrollTo(0, 0);
+  }
+  function flashCard(i) {
+    const el = view.querySelectorAll(".card")[i];
+    if (el) { el.classList.remove("flash"); void el.offsetWidth; el.scrollIntoView({ block: "center" }); el.classList.add("flash") }
   }
 
   // Jump straight to any topic (from the panel or the search), keeping Atrás → section → home.
   function jumpTo(sid, tid, item) {
-    closeSheet();
+    if (!docked()) sheet.hidden = true;
     const d = stack.length;
     if (d === 1) { history.pushState({ depth: 2 }, ""); history.pushState({ depth: 3 }, "") }
     else if (d === 2) history.pushState({ depth: 3 }, "");
     else history.replaceState({ depth: 3 }, "");
     stack = [{ v: "home" }, { v: "section", s: sid }, { v: "topic", s: sid, t: tid }];
     render();
-    if (item != null) {
-      const el = view.querySelectorAll(".card")[item];
-      if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("flash") }
-    }
+    if (item != null) flashCard(item);
   }
 
   // Row of the module's topics under the bar, only inside a topic.
@@ -318,17 +328,41 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
     if (cur) chips.scrollLeft = cur.offsetLeft - chips.clientWidth / 2 + cur.offsetWidth / 2;
   }
 
-  // Topics panel with search.
+  // Topics menu with search. On a wide screen it stays docked on the right until you minimise it.
   const sheet = document.getElementById("sheet"), q = document.getElementById("q"), list = document.getElementById("sheetList");
+  const fab = document.getElementById("fab"), closeBtn = document.getElementById("closeSheet");
   const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  function openSheet() { sheet.hidden = false; renderSheet() }
-  function closeSheet() { sheet.hidden = true }
+  const wide = () => window.innerWidth >= 700;
+  let dock = store.get("dock", true);
+  const docked = () => document.body.classList.contains("docked");
+  function applyDock() {
+    const on = dock && wide();
+    document.body.classList.toggle("docked", on);
+    if (on) sheet.hidden = false;
+    else if (wide()) sheet.hidden = true;
+    sheet.setAttribute("aria-modal", String(!on));
+    fab.hidden = !sheet.hidden;
+    closeBtn.textContent = on ? "Minimizar ›" : "Cerrar";
+    if (!sheet.hidden) renderSheet();
+  }
+  function openSheet() {
+    if (wide()) { dock = true; store.set("dock", true); applyDock() }
+    else { sheet.hidden = false; fab.hidden = true; renderSheet() }
+  }
+  function closeSheet() {
+    if (docked()) { dock = false; store.set("dock", false); applyDock() }
+    else { sheet.hidden = true; fab.hidden = false }
+  }
   function renderSheet() {
     const term = norm(q.value.trim());
     const cur = stack[stack.length - 1];
+    const isCur = (s, t) => cur.v === "topic" && cur.s === s.id && cur.t === t.id;
     if (!term) {
       list.innerHTML = S.filter(s => !s.soon).map(s => `<h3>${esc(s.title)}</h3><div class="tlist">${s.topics.map(t =>
-        `<button class="tbtn" type="button" data-go="${s.id}|${t.id}" aria-current="${cur.v === "topic" && cur.s === s.id && cur.t === t.id}">${esc(t.title)}</button>`).join("")}</div>`).join("");
+        `<button class="tbtn" type="button" data-go="${s.id}|${t.id}" aria-current="${isCur(s, t)}">${esc(t.title)}</button>` +
+        (isCur(s, t) ? `<div class="qlist">${t.items.map((it, i) => `<button class="qbtn" type="button" data-card="${i}">${esc(it.q || it.en)}</button>`).join("")}</div>` : "")
+      ).join("")}</div>`).join("");
+      list.querySelectorAll("[data-card]").forEach(b => b.onclick = () => { if (!docked()) { sheet.hidden = true; fab.hidden = false } flashCard(+b.dataset.card) });
     } else {
       const hits = [];
       S.filter(s => !s.soon).forEach(s => s.topics.forEach(t => t.items.forEach((it, i) => {
@@ -347,11 +381,12 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
     }
     list.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const [sid, tid, i] = b.dataset.go.split("|"); jumpTo(sid, tid, i === undefined ? null : +i) });
   }
-  document.getElementById("fab").onclick = openSheet;
-  document.getElementById("closeSheet").onclick = closeSheet;
-  sheet.addEventListener("click", e => { if (e.target === sheet) closeSheet() });
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet() });
+  fab.onclick = openSheet;
+  closeBtn.onclick = closeSheet;
+  sheet.addEventListener("click", e => { if (e.target === sheet && !docked()) closeSheet() });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden && !docked()) closeSheet() });
   q.addEventListener("input", renderSheet);
+  window.addEventListener("resize", applyDock);
 
   function bindToggle(id, key) {
     const b = document.getElementById(id);
@@ -377,6 +412,7 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
       if (tid && s.topics.some(t => t.id === tid)) { stack.push({ v: "topic", s: sid, t: tid }); history.pushState({ depth: 3 }, "") }
     }
   }
+  applyDock();
   render();
 })();
 </script>
