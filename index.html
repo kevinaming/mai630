@@ -115,6 +115,35 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
 .qbtn { text-align: left; background: transparent; border: 0; border-radius: 8px; padding: 8px 10px; font-size: 14px; line-height: 1.3; color: var(--ink); min-height: 40px }
 .qbtn:hover { background: var(--chip) }
 
+/* Assistant chat on the left (only where the page can ask Claude) */
+.fab-chat { position: fixed; z-index: 15; left: calc(16px + env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--navy); color: #fff; border: 0; border-radius: 999px; padding: 14px 22px; font-weight: 700; font-size: 17px; min-height: 56px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25) }
+.chat { position: fixed; inset: 0; z-index: 30; background: rgba(8,12,20,.55); display: flex; justify-content: flex-start }
+.chat-body { width: min(420px, 100%); height: 100%; background: var(--bg); display: flex; flex-direction: column; border-right: 1.5px solid var(--line);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px) }
+.chat-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1.5px solid var(--line) }
+.chat-head h2 { flex: 1; margin: 0; font-family: var(--display); font-weight: 800; font-size: 22px }
+.pin[aria-pressed="true"] { background: var(--navy); color: #fff }
+.msgs { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 14px; display: flex; flex-direction: column; gap: 12px }
+.msg-me { align-self: flex-end; max-width: 85%; background: var(--navy); color: #fff; border-radius: 14px 14px 4px 14px; padding: 10px 14px; font-size: 16px }
+.msg-bot { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 8px }
+.msg-bot .qen { font-size: 14px; color: var(--muted) }
+.msg-bot .aen { font-size: 20px; font-weight: 700; line-height: 1.4 }
+.msg-bot.err { color: var(--muted) }
+.thinking { color: var(--muted); font-style: italic }
+.hello { color: var(--muted); font-size: 15px; display: grid; gap: 8px }
+.hello .ex { text-align: left; background: var(--chip); border: 0; border-radius: 10px; padding: 8px 12px; font-size: 15px; min-height: 40px }
+.composer { display: flex; gap: 8px; padding: 12px 14px; border-top: 1.5px solid var(--line); align-items: flex-end }
+.composer textarea { flex: 1; min-width: 0; resize: none; font: inherit; font-size: 17px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink); min-height: 50px; max-height: 140px }
+.composer textarea:focus { outline: 3px solid var(--red); outline-offset: 1px }
+.send { background: var(--red); color: #fff; border: 0; border-radius: 12px; padding: 0 18px; font-weight: 700; min-height: 50px }
+.send.stop { background: var(--muted) }
+body.chatdock { padding-left: 400px }
+body.chatdock .chat { inset: 0 auto 0 0; width: 400px; background: transparent; z-index: 12 }
+body.chatdock .chat-body { width: 100% }
+
 /* Docked: the topics menu stays open on the right, the page uses the rest of the width */
 body.docked { padding-right: 340px }
 body.docked .sheet { inset: 0 0 0 auto; width: 340px; background: transparent; z-index: 12 }
@@ -146,6 +175,21 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
 <main id="view"></main>
 <div class="swipe-hint" id="swipeHint" aria-hidden="true">‹</div>
 <button class="fab" id="fab" type="button" aria-haspopup="dialog">☰ Temas</button>
+<button class="fab-chat" id="fabChat" type="button" aria-haspopup="dialog" hidden>💬 Asistente</button>
+<div class="chat" id="chat" role="dialog" aria-label="Asistente para responder" hidden>
+  <div class="chat-body">
+    <div class="chat-head">
+      <h2>Asistente</h2>
+      <button class="close pin" id="pinChat" type="button" aria-pressed="false" title="Dejarlo fijo a la izquierda">📌 Anclar</button>
+      <button class="close" id="closeChat" type="button" aria-label="Cerrar el asistente">✕</button>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+    <form class="composer" id="composer">
+      <textarea id="ask" rows="1" placeholder="Escribe la pregunta o el tema, en español o inglés" aria-label="Pregunta"></textarea>
+      <button class="send" id="send" type="submit">Enviar</button>
+    </form>
+  </div>
+</div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Temas y buscador" hidden>
   <div class="sheet-body">
     <div class="sheet-head"><h2>Temas</h2><button class="close" id="closeSheet" type="button">Cerrar</button></div>
@@ -199,7 +243,7 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
   let sw = null;
   document.addEventListener("touchstart", e => {
     const t = e.touches[0];
-    const scrollable = e.target.closest && e.target.closest(".chips, .sheet");  // these scroll sideways or have their own gestures
+    const scrollable = e.target.closest && e.target.closest(".chips, .sheet, .chat");  // these scroll sideways or have their own gestures
     sw = (e.touches.length === 1 && stack.length > 1 && !scrollable) ? { x: t.clientX, y: t.clientY, dx: 0 } : null;
   }, { passive: true });
   document.addEventListener("touchmove", e => {
@@ -336,7 +380,8 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
   let dock = store.get("dock", true);
   const docked = () => document.body.classList.contains("docked");
   function applyDock() {
-    const on = dock && wide();
+    // With the assistant pinned on the left, the topics menu stays docked only on a very wide screen.
+    const on = dock && wide() && !(document.body.classList.contains("chatdock") && window.innerWidth < 1180);
     document.body.classList.toggle("docked", on);
     if (on) sheet.hidden = false;
     else if (wide()) sheet.hidden = true;
@@ -388,7 +433,88 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
   sheet.addEventListener("click", e => { if (e.target === sheet && !docked()) closeSheet() });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden && !docked()) closeSheet() });
   q.addEventListener("input", renderSheet);
-  window.addEventListener("resize", applyDock);
+  window.addEventListener("resize", () => { applyChat(); applyDock() });
+
+  // Assistant: asks Claude with the whole course context. Only shown where the page can reach Claude.
+  const chat = document.getElementById("chat"), fabChat = document.getElementById("fabChat"), pinBtn = document.getElementById("pinChat");
+  const msgs = document.getElementById("msgs"), askBox = document.getElementById("ask"), sendBtn = document.getElementById("send");
+  let sampleFn = null, chatOpen = false, pinned = store.get("chatPinned", false), ctl = null, lastQ = "";
+  const RULES = `You help Professor Kevin García answer his students live, in a Zoom meeting of the course MAI 630 Computer Vision. He will read your answer aloud. His English is basic.
+The input can be in Spanish or English. It can be a student's question, or only a topic.
+Rules:
+- answer_en: 1 to 3 short sentences. English level A2: common words, at most 12 words per sentence, no idioms. Use a technical word (kernel, threshold, commit) only when it is needed.
+- Be concise. Answer only what was asked.
+- Use the course context below as the truth for dates, files, rules, commands and numbers. If the answer is not in the context, give a short safe answer and add: "I will check and answer you in the forum."
+- Never write a student's assignment sentences or interpretations for them. You may explain the idea.
+- question_en: the student's question in simple English (translate it if it is in Spanish).
+- answer_es: the same answer in natural Spanish.
+- pron: the hard English words of answer_en with Spanish-style pronunciation, stressed syllable in CAPITALS, separated by " · ", like "threshold (ZRÉSH-jould) · kernel (KÉR-nel)". Empty string if there are none.
+Reply with only this JSON: {"question_en": "...", "answer_en": "...", "answer_es": "...", "pron": "..."}
+
+COURSE CONTEXT:
+`;
+  const ERR = {
+    not_granted: "No diste permiso para usar Claude en esta página. Vuelve a abrirla para que lo pregunte otra vez.",
+    rate_limited: "Demasiadas preguntas seguidas o llegaste a tu límite de uso. Espera un momento y vuelve a intentar.",
+    session_expired: "Tu sesión de Claude expiró. Vuelve a iniciar sesión y recarga la página.",
+    invalid_json: "La respuesta llegó incompleta. Toca Enviar otra vez.",
+    refused: "Claude no respondió esa pregunta. Escríbela de otra forma.",
+  };
+  function hello() {
+    const ex = ["¿Cuándo vencen las tareas?", "Student asks how to share the repository", "Canny thresholds", "Mi instalación se congeló"];
+    msgs.innerHTML = `<div class="hello"><div>Escribe lo que pregunta el estudiante, o solo el tema, en español o en inglés. Te respondo en inglés sencillo, con la traducción.</div>
+      ${ex.map(e => `<button class="ex" type="button">${esc(e)}</button>`).join("")}</div>`;
+    msgs.querySelectorAll(".ex").forEach(b => b.onclick = () => { askBox.value = b.textContent; ask() });
+  }
+  function applyChat() {
+    const dockIt = chatOpen && pinned && wide();
+    document.body.classList.toggle("chatdock", dockIt);
+    chat.hidden = !chatOpen;
+    fabChat.hidden = !sampleFn || chatOpen;
+    pinBtn.setAttribute("aria-pressed", String(pinned));
+    pinBtn.textContent = pinned ? "📌 Anclado" : "📌 Anclar";
+    pinBtn.hidden = !wide();
+  }
+  function openChat() { chatOpen = true; applyChat(); applyDock(); if (!msgs.children.length) hello() }
+  function closeChat() { chatOpen = false; if (ctl) ctl.abort(); applyChat(); applyDock() }
+  fabChat.onclick = openChat;
+  document.getElementById("closeChat").onclick = closeChat;
+  pinBtn.onclick = () => { pinned = !pinned; store.set("chatPinned", pinned); applyChat(); applyDock() };
+  chat.addEventListener("click", e => { if (e.target === chat && !document.body.classList.contains("chatdock")) closeChat() });
+  askBox.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask() } });
+  document.getElementById("composer").addEventListener("submit", e => { e.preventDefault(); if (ctl) ctl.abort(); else ask() });
+
+  async function ask() {
+    const text = askBox.value.trim();
+    if (!text || !sampleFn || ctl) return;
+    if (msgs.querySelector(".hello")) msgs.innerHTML = "";
+    askBox.value = "";
+    const me = document.createElement("div"); me.className = "msg-me"; me.textContent = text; msgs.append(me);
+    const bot = document.createElement("div"); bot.className = "msg-bot"; bot.innerHTML = `<div class="thinking">Pensando…</div>`; msgs.append(bot);
+    msgs.scrollTop = msgs.scrollHeight;
+    ctl = new AbortController(); sendBtn.textContent = "Parar"; sendBtn.classList.add("stop");
+    const prompt = RULES + (window.COURSE_CONTEXT || "") + (lastQ ? `\n\nPrevious question in this meeting: ${lastQ}` : "") + `\n\nINPUT FROM THE PROFESSOR:\n${text}`;
+    try {
+      const r = await sampleFn.json(prompt, { modelTier: "quick", signal: ctl.signal });
+      const it = { q: String(r.question_en || ""), en: String(r.answer_en || ""), es: String(r.answer_es || ""), pron: String(r.pron || "") };
+      lastQ = it.q || text;
+      bot.innerHTML = `${it.q ? `<div class="qen">${esc(it.q)}</div>` : ""}<div class="aen">${esc(it.en)}</div>
+        ${opts.pron && it.pron ? `<div class="pron">Pronunciación: ${pronHtml(it.pron)}</div>` : ""}
+        ${opts.es && it.es ? `<div class="es">${esc(it.es)}</div>` : ""}
+        ${tts ? `<div class="actions"><button class="act play" type="button" data-n="1">▶ Escuchar</button><button class="act" type="button" data-n="0.6">Muy lento</button></div>` : ""}`;
+      bot.querySelectorAll("[data-n]").forEach(b => b.onclick = () => say(it.en, parseFloat(b.dataset.n) === 1 ? null : 0.6));
+    } catch (e) {
+      bot.classList.add("err");
+      bot.textContent = e && e.code === "cancelled" ? "Cancelado." : (ERR[e && e.code] || "No se pudo responder ahora. Toca Enviar otra vez.");
+      if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) { sampleFn = null; fabChat.hidden = true }
+    } finally {
+      ctl = null; sendBtn.textContent = "Enviar"; sendBtn.classList.remove("stop");
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  }
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("sample").then(fn => { sampleFn = fn; applyChat() }).catch(() => {});
+  }
 
   function bindToggle(id, key) {
     const b = document.getElementById(id);
