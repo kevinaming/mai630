@@ -29,6 +29,7 @@ window.SECTIONS = [
     ]},
     { id: "close", title: "Cerrar la reunión", items: [
       { en: "We're almost out of time. Is there one last question?", es: "Ya casi se nos acaba el tiempo. ¿Hay una última pregunta?" },
+      { en: "Okay, we're out of time, and I have to go now. Thanks for joining. See you next Monday in class!", es: "Bueno, se nos acabó el tiempo y tengo que desconectarme. Gracias por unirte. ¡Nos vemos el próximo lunes en clase!" },
       { en: "Remember, both assignments are due on Sunday at 11:59 PM.", es: "Recuerden, las dos tareas cierran el domingo a las 11:59 PM." },
       { en: "If you have more questions, please post them in the course forum. I answer within 48 hours.", es: "Si tienen más preguntas, publíquenlas en el foro del curso. Respondo en menos de 48 horas." },
       { en: "Thank you very much for coming. Have a great week, and see you next time.", es: "Muchas gracias por venir. Que tengan una excelente semana, y nos vemos la próxima." }
