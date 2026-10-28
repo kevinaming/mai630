@@ -363,6 +363,8 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
         (isCur(s, t) ? `<div class="qlist">${t.items.map((it, i) => `<button class="qbtn" type="button" data-card="${i}">${esc(it.q || it.en)}</button>`).join("")}</div>` : "")
       ).join("")}</div>`).join("");
       list.querySelectorAll("[data-card]").forEach(b => b.onclick = () => { if (!docked()) { sheet.hidden = true; fab.hidden = false } flashCard(+b.dataset.card) });
+      const curBtn = list.querySelector('.tbtn[aria-current="true"]');
+      if (curBtn) { const body = sheet.querySelector(".sheet-body"); body.scrollTop = Math.max(0, curBtn.offsetTop - 120) }
     } else {
       const hits = [];
       S.filter(s => !s.soon).forEach(s => s.topics.forEach(t => t.items.forEach((it, i) => {
