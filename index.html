@@ -79,6 +79,8 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
 .next .act { font-size: 16px; padding: 12px 18px }
 .swipe-hint { position: fixed; top: 50%; left: calc(8px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%;
   background: var(--navy); color: #fff; font-size: 28px; font-weight: 700; display: grid; place-items: center; opacity: 0; pointer-events: none; z-index: 20 }
+.pull-hint { position: fixed; left: 50%; top: calc(70px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: 44px; height: 44px; border-radius: 50%;
+  background: var(--red); color: #fff; font-size: 26px; font-weight: 700; display: grid; place-items: center; opacity: 0; pointer-events: none; z-index: 20 }
 .note { margin-top: 26px; color: var(--muted); font-size: 14px }
 
 /* Topic row under the bar */
@@ -174,6 +176,7 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
 </header>
 <main id="view"></main>
 <div class="swipe-hint" id="swipeHint" aria-hidden="true">‹</div>
+<div class="pull-hint" id="pullHint" aria-hidden="true">↻</div>
 <button class="fab" id="fab" type="button" aria-haspopup="dialog">☰ Temas</button>
 <button class="fab-chat" id="fabChat" type="button" aria-haspopup="dialog" hidden>💬 Asistente</button>
 <div class="chat" id="chat" role="dialog" aria-label="Asistente para responder" hidden>
@@ -258,6 +261,29 @@ body.docked .sheet-body { width: 100%; border-left: 1.5px solid var(--line) }
   document.addEventListener("touchend", () => {
     if (sw && sw.dx > SWIPE) back();
     sw = null; hint.style.opacity = 0; hint.style.transform = "translateY(-50%)";
+  });
+
+  // Pull down from the top of the page to reload it.
+  const pull = document.getElementById("pullHint");
+  const PULL = 100;  // pixels to drag down
+  let pd = null;
+  document.addEventListener("touchstart", e => {
+    const inPanel = e.target.closest && e.target.closest(".sheet, .chat, .chips");
+    pd = (e.touches.length === 1 && window.scrollY <= 0 && !inPanel) ? { y: e.touches[0].clientY, x: e.touches[0].clientX, dy: 0 } : null;
+  }, { passive: true });
+  document.addEventListener("touchmove", e => {
+    if (!pd) return;
+    const t = e.touches[0];
+    pd.dy = t.clientY - pd.y;
+    if (pd.dy < 0 || window.scrollY > 0 || Math.abs(t.clientX - pd.x) > pd.dy) { pd = null; pull.style.opacity = 0; return }
+    const p = Math.min(1, pd.dy / PULL);
+    pull.style.opacity = p;
+    pull.style.transform = `translateX(-50%) translateY(${p * 40}px) rotate(${p * 270}deg)`;
+    pull.textContent = "↻";
+  }, { passive: true });
+  document.addEventListener("touchend", () => {
+    if (pd && pd.dy > PULL) { pull.style.opacity = 1; location.reload(); return }
+    pd = null; pull.style.opacity = 0; pull.style.transform = "translateX(-50%)";
   });
 
   function renderHome() {
