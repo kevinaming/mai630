@@ -142,23 +142,25 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
     if (depth < stack.length) { stack.length = depth; render() }
   });
 
-  // Swipe from the left edge to the right goes back one view.
+  // Swipe left to right anywhere on the screen goes back one view.
   const hint = document.getElementById("swipeHint");
+  const SWIPE = 110;  // pixels of horizontal travel needed
   let sw = null;
   document.addEventListener("touchstart", e => {
     const t = e.touches[0];
-    sw = (e.touches.length === 1 && t.clientX < 40 && stack.length > 1) ? { x: t.clientX, y: t.clientY, dx: 0 } : null;
+    sw = (e.touches.length === 1 && stack.length > 1) ? { x: t.clientX, y: t.clientY, dx: 0 } : null;
   }, { passive: true });
   document.addEventListener("touchmove", e => {
     if (!sw) return;
     const t = e.touches[0];
     sw.dx = t.clientX - sw.x;
-    if (Math.abs(t.clientY - sw.y) > 60) { sw = null; hint.style.opacity = 0; return }
-    const p = Math.max(0, Math.min(1, sw.dx / 90));
+    const dy = Math.abs(t.clientY - sw.y);
+    if (dy > 70 || (dy > 25 && dy > sw.dx)) { sw = null; hint.style.opacity = 0; return }  // a scroll, not a swipe
+    const p = Math.max(0, Math.min(1, sw.dx / SWIPE));
     hint.style.opacity = p; hint.style.transform = `translateY(-50%) translateX(${p * 24}px)`;
   }, { passive: true });
   document.addEventListener("touchend", () => {
-    if (sw && sw.dx > 90) back();
+    if (sw && sw.dx > SWIPE) back();
     sw = null; hint.style.opacity = 0; hint.style.transform = "translateY(-50%)";
   });
 
