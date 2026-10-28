@@ -24,6 +24,7 @@
   --navy: #22324F; --red: #FF5A6E; --line: #273249; --chip: #1D2738; --es: #B9C3D6; color-scheme: dark }
 
 * { box-sizing: border-box }
+[hidden] { display: none !important }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.45 }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--navy) }
 button { font: inherit; color: inherit; cursor: pointer }
@@ -41,7 +42,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--red); outl
 .speed { background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.35); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 14px; min-height: 38px }
 .speed option { color: #121A2B }
 
-main { max-width: 980px; margin: 0 auto; padding-block: 22px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+main { max-width: 980px; margin: 0 auto; padding-block: 22px 110px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
 h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 36px); line-height: 1.1; margin: 4px 0 6px; text-wrap: balance }
 .lead { color: var(--muted); margin: 0 0 20px; max-width: 62ch }
 .eyebrow { font-family: var(--display); font-weight: 600; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--red) }
@@ -79,7 +80,40 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
 .swipe-hint { position: fixed; top: 50%; left: calc(8px + env(safe-area-inset-left, 0px)); transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%;
   background: var(--navy); color: #fff; font-size: 28px; font-weight: 700; display: grid; place-items: center; opacity: 0; pointer-events: none; z-index: 20 }
 .note { margin-top: 26px; color: var(--muted); font-size: 14px }
-@media (prefers-reduced-motion: reduce) { .tile { transition: none } .tile:hover:not(:disabled) { transform: none } }
+
+/* Topic row under the bar */
+.chips { max-width: 980px; margin: 10px auto 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px }
+.chips::-webkit-scrollbar { display: none }
+.chip { flex: none; background: rgba(255,255,255,.1); border: 0; color: #fff; border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 700; min-height: 40px; white-space: nowrap }
+.chip[aria-current="true"] { background: #fff; color: #0C1422 }
+
+/* Floating "Temas" button and the topics panel */
+.fab { position: fixed; z-index: 15; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--red); color: #fff; border: 0; border-radius: 999px; padding: 14px 22px; font-weight: 700; font-size: 17px; min-height: 56px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.25) }
+.sheet { position: fixed; inset: 0; z-index: 30; background: rgba(8,12,20,.55); display: flex; justify-content: flex-end }
+.sheet-body { width: min(440px, 100%); height: 100%; background: var(--bg); overflow-y: auto; overscroll-behavior: contain;
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+.sheet-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px }
+.sheet-head h2 { flex: 1; margin: 0; font-family: var(--display); font-weight: 800; font-size: 24px }
+.close { background: var(--chip); border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; min-height: 44px }
+.search { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); min-height: 50px }
+.search:focus { outline: 3px solid var(--red); outline-offset: 1px }
+.sheet h3 { font-family: var(--display); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--red); margin: 18px 0 8px }
+.tlist { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.tbtn { text-align: left; background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; font-weight: 700; font-size: 15px; min-height: 48px }
+.tbtn[aria-current="true"] { border-color: var(--red); color: var(--red) }
+.hits { display: grid; gap: 8px; margin-top: 12px }
+.hit { text-align: left; background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px }
+.hit .where { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted) }
+.hit .txt { font-weight: 700 }
+.hit .sub { color: var(--es); font-size: 14px }
+.hit mark { background: #FFE08A; color: #121A2B; border-radius: 3px }
+.empty { color: var(--muted); margin-top: 14px }
+.card.flash { animation: flash 1.6s ease-out }
+@keyframes flash { 0%, 40% { border-color: var(--red); box-shadow: 0 0 0 4px rgba(192,18,42,.25) } 100% { border-color: var(--line); box-shadow: none } }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none } .tile:hover:not(:disabled) { transform: none } .card.flash { animation: none; border-color: var(--red) } }
 </style>
 </head>
 <body>
@@ -99,9 +133,18 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
       <option value="1">Voz rápida</option>
     </select>
   </div>
+  <nav class="chips" id="chips" aria-label="Temas del módulo" hidden></nav>
 </header>
 <main id="view"></main>
 <div class="swipe-hint" id="swipeHint" aria-hidden="true">‹</div>
+<button class="fab" id="fab" type="button" aria-haspopup="dialog">☰ Temas</button>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Temas y buscador" hidden>
+  <div class="sheet-body">
+    <div class="sheet-head"><h2>Temas</h2><button class="close" id="closeSheet" type="button">Cerrar</button></div>
+    <input class="search" id="q" type="search" placeholder="Buscar: Canny, deadline, GitHub…" autocomplete="off" aria-label="Buscar frases">
+    <div id="sheetList"></div>
+  </div>
+</div>
 
 <script src="data.js"></script>
 <script>
@@ -148,7 +191,8 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
   let sw = null;
   document.addEventListener("touchstart", e => {
     const t = e.touches[0];
-    sw = (e.touches.length === 1 && stack.length > 1) ? { x: t.clientX, y: t.clientY, dx: 0 } : null;
+    const scrollable = e.target.closest && e.target.closest(".chips, .sheet");  // these scroll sideways or have their own gestures
+    sw = (e.touches.length === 1 && stack.length > 1 && !scrollable) ? { x: t.clientX, y: t.clientY, dx: 0 } : null;
   }, { passive: true });
   document.addEventListener("touchmove", e => {
     if (!sw) return;
@@ -241,8 +285,73 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 
     if (st.v === "home") renderHome();
     else if (st.v === "section") renderSection(st.s);
     else renderTopic(st.s, st.t);
+    renderChips(st);
     window.scrollTo(0, 0);
   }
+
+  // Jump straight to any topic (from the panel or the search), keeping Atrás → section → home.
+  function jumpTo(sid, tid, item) {
+    closeSheet();
+    const d = stack.length;
+    if (d === 1) { history.pushState({ depth: 2 }, ""); history.pushState({ depth: 3 }, "") }
+    else if (d === 2) history.pushState({ depth: 3 }, "");
+    else history.replaceState({ depth: 3 }, "");
+    stack = [{ v: "home" }, { v: "section", s: sid }, { v: "topic", s: sid, t: tid }];
+    render();
+    if (item != null) {
+      const el = view.querySelectorAll(".card")[item];
+      if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("flash") }
+    }
+  }
+
+  // Row of the module's topics under the bar, only inside a topic.
+  const chips = document.getElementById("chips");
+  function renderChips(st) {
+    if (st.v !== "topic") { chips.hidden = true; chips.innerHTML = ""; return }
+    const s = S.find(x => x.id === st.s);
+    chips.innerHTML = s.topics.map(t => `<button class="chip" type="button" data-chip="${t.id}" aria-current="${t.id === st.t}">${esc(t.title)}</button>`).join("");
+    chips.hidden = false;
+    chips.querySelectorAll("[data-chip]").forEach(b => b.onclick = () => {
+      stack[stack.length - 1] = { v: "topic", s: st.s, t: b.dataset.chip }; history.replaceState({ depth: stack.length }, ""); render();
+    });
+    const cur = chips.querySelector('[aria-current="true"]');
+    if (cur) chips.scrollLeft = cur.offsetLeft - chips.clientWidth / 2 + cur.offsetWidth / 2;
+  }
+
+  // Topics panel with search.
+  const sheet = document.getElementById("sheet"), q = document.getElementById("q"), list = document.getElementById("sheetList");
+  const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  function openSheet() { sheet.hidden = false; renderSheet() }
+  function closeSheet() { sheet.hidden = true }
+  function renderSheet() {
+    const term = norm(q.value.trim());
+    const cur = stack[stack.length - 1];
+    if (!term) {
+      list.innerHTML = S.filter(s => !s.soon).map(s => `<h3>${esc(s.title)}</h3><div class="tlist">${s.topics.map(t =>
+        `<button class="tbtn" type="button" data-go="${s.id}|${t.id}" aria-current="${cur.v === "topic" && cur.s === s.id && cur.t === t.id}">${esc(t.title)}</button>`).join("")}</div>`).join("");
+    } else {
+      const hits = [];
+      S.filter(s => !s.soon).forEach(s => s.topics.forEach(t => t.items.forEach((it, i) => {
+        const hay = norm([it.en, it.es, it.q, it.qes, t.title].join(" "));
+        if (hay.includes(term)) hits.push({ s, t, it, i });
+      })));
+      const mark = txt => { const n = norm(txt), k = n.indexOf(term); return k < 0 ? esc(txt) : esc(txt.slice(0, k)) + "<mark>" + esc(txt.slice(k, k + term.length)) + "</mark>" + esc(txt.slice(k + term.length)) };
+      list.innerHTML = hits.length ? `<div class="hits">${hits.slice(0, 40).map(h => `
+        <button class="hit" type="button" data-go="${h.s.id}|${h.t.id}|${h.i}">
+          <span class="where">${esc(h.s.title)} › ${esc(h.t.title)}</span>
+          ${h.it.q ? `<span class="sub">${mark(h.it.q)}</span>` : ""}
+          <span class="txt">${mark(h.it.en)}</span>
+          ${opts.es ? `<span class="sub">${mark(h.it.es)}</span>` : ""}
+        </button>`).join("")}</div>${hits.length > 40 ? `<p class="empty">Mostrando 40 de ${hits.length}. Escribe algo más específico.</p>` : ""}`
+        : `<p class="empty">No hay frases con «${esc(q.value.trim())}». Prueba otra palabra, en inglés o en español.</p>`;
+    }
+    list.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { const [sid, tid, i] = b.dataset.go.split("|"); jumpTo(sid, tid, i === undefined ? null : +i) });
+  }
+  document.getElementById("fab").onclick = openSheet;
+  document.getElementById("closeSheet").onclick = closeSheet;
+  sheet.addEventListener("click", e => { if (e.target === sheet) closeSheet() });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) closeSheet() });
+  q.addEventListener("input", renderSheet);
 
   function bindToggle(id, key) {
     const b = document.getElementById(id);
